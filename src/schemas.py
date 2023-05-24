@@ -5,9 +5,9 @@ class TaskSchema(BaseModel):
     title : str
     description : str
     created_by : int
-    started_by : int
-    finished_by : int
-    notes_id: int
+    started_by : Optional[int]
+    finished_by : Optional[int]
+    notes_id: Optional[int]
 
 class UserSchema(BaseModel):
     username : str
