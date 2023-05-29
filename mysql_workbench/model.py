@@ -12,9 +12,9 @@ from sqlalchemy import Column, ForeignKey
 from sqlalchemy.ext.declarative import declarative_base
 
 if os.environ.get('DB_TYPE', 'MySQL') == 'MySQL':
-    from sqlalchemy.dialects.mysql import INTEGER, VARCHAR
+    from sqlalchemy.dialects.mysql import VARCHAR, INTEGER
 else:
-    from sqlalchemy import String as VARCHAR, Integer
+    from sqlalchemy import Integer, String as VARCHAR
 
     class INTEGER(Integer):
         def __init__(self, *args, **kwargs):
@@ -34,7 +34,6 @@ class Task(DECLARATIVE_BASE):
     id = Column(INTEGER, nullable=False, autoincrement=False, primary_key=True)  # pylint: disable=invalid-name
     title = Column(VARCHAR(45))
     description = Column(VARCHAR(45))
-    notes = Column(INTEGER)
 
     def __repr__(self):
         return self.__str__()
@@ -50,11 +49,11 @@ class Note(DECLARATIVE_BASE):
         {'mysql_engine': 'ndbcluster', 'mysql_charset': 'utf8'}
     )
 
+    note = Column(VARCHAR(500))
     id = Column(  # pylint: disable=invalid-name
-        VARCHAR(45), ForeignKey("tasks.notes", name="fk_notes_tasks"), nullable=False, autoincrement=False,
+        "tasks_id", INTEGER, ForeignKey("tasks.id", name="fk_notes_tasks1"), nullable=False, autoincrement=False,
         primary_key=True
     )
-    note = Column(VARCHAR(500))
 
     task = relationship("Task", foreign_keys=[id], backref="notes")
 
