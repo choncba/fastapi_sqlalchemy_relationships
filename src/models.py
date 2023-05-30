@@ -1,71 +1,67 @@
-from sqlalchemy import Column, Integer, String, ForeignKey
-from database import Base
-from sqlalchemy.orm import relationship
-from schemas import UserSchema, TaskSchema, NoteSchema
+from typing import Optional, List
+from sqlmodel import Field, SQLModel, Relationship
 
-class Tasks(Base):
-    __tablename__ = "tasks"
+# Users
+class UsersBase(SQLModel):
+    username : str
+    password : str
 
-    id = Column(Integer, primary_key=True, index=True, autoincrement=True)
-    title = Column(String(100), nullable=False)
-    description = Column(String(2000), nullable=False)
+class Users(UsersBase, table=True):
+    id : Optional[int] = Field(default=None, primary_key=True)
+    started_tasks: List['Tasks'] = Relationship(back_populates="started_by")
 
-    # created_by_id = Column(Integer, ForeignKey("users.id"), nullable=False)
-    # started_by_id = Column(Integer, ForeignKey("users.id"), nullable=True)
-    # finished_by_id = Column(Integer, ForeignKey("users.id"), nullable=True)
-    # created_by = relationship("Users", foreign_keys=[created_by_id])
-    # started_by = relationship("Users", foreign_keys=[started_by_id])
-    # finished_by = relationship("Users", foreign_keys=[finished_by_id])
+class UsersRead(SQLModel):
+    id: int
+    username: str
 
-    # notes_id = Column(Integer, ForeignKey("notes.id"), nullable=True)
-    # notes = relationship("Notes")
+class UsersCreate(UsersBase):
+    pass
 
-    def __init__(self, task: TaskSchema | None = None):
-        if task: 
-            self.title = task.title
-            self.description = task.description
+class UsersUpdate(SQLModel):
+    id: int
+    username : Optional[str] = None
+    password : Optional[str] = None
 
-class Users(Base):
-    __tablename__ = "users"
+# Tasks
 
-    id = Column(Integer, primary_key=True, index=True, unique=True, autoincrement=True)    
-    username = Column(String(50), unique=True, nullable=False)
-    password = Column(String(50), unique=False, nullable=False)
-    # tasks = relationship(   "Tasks",
-    #                         cascade="all,delete-orphan",
-    #                         back_populates="created_by",
-    #                         uselist=True
-    #                     )
+# Clase Base referida a SQLModel, acá van los campos principales, pero no define la tabla de la BD
+class TasksBase(SQLModel):
+    title : str
+    description : str
+    started_by_id: Optional[int] = Field(default=None, foreign_key="users.id")
 
-    def __init__(self, user: UserSchema | None = None):
-        if user: 
-            self.username = user.username
-            self.password = user.password
+# table=True indica que se CREARA este modelo de tabla en la BD
+# el id debe estar en la tabla y se crea de forma automática
+# Los otros campos se heredan de TaskBase
+class Tasks(TasksBase, table=True):
+    id: Optional[int] = Field(default=None, primary_key=True)
+    started_by: Optional[Users] = Relationship(back_populates="started_tasks")
 
-    
-class Notes(Base):
-    __tablename__ = "notes"
-    
-    id = Column("tasks_id", Integer, ForeignKey("tasks.id", name="notes_tasks"), nullable=False, autoincrement=False, primary_key=True)
-    note = Column(String(500))
+# Para lectura, incluyo el id
+class TasksRead(TasksBase):
+    id: int
 
-    task = relationship("Tasks", foreign_keys=[id], backref="notes")
+class TaskRead(SQLModel):
+    id: int
+    title : str
+    description : str
 
-    def __init__(self, note: NoteSchema | None = None):
-        if note: 
-            self.note = note.note
+# Para escritura, utilizo la clase base, la dejo como referencia
+class TasksCreate(TasksBase):
+    pass
 
-class Tasks_Users(Base):
-    __tablename__ = "tasks_users"
-    id = Column("task_id", Integer, ForeignKey("tasks.id", name="task_id"), nullable=False, autoincrement=False, primary_key=True)
-    created_by = Column(Integer, ForeignKey("users.id", name="created_by"), nullable=False, index=True)
-    started_by = Column(Integer, ForeignKey("users.id", name="started_by"), nullable=False, index=True)
-    finished_by = Column(Integer, ForeignKey("users.id", name="finished_by"), nullable=False, index=True)
+class TasksUpdate(SQLModel):
+    title : Optional[str] = None
+    description : Optional[str] = None
+    started_by_id: Optional[int] = None
 
-    task = relationship("Tasks", foreign_keys=[id], backref="tasksUsers")
-    user = relationship("Users", foreign_keys=[created_by], backref="tasksUsers")
-    user = relationship("Users", foreign_keys=[started_by], backref="tasksUsers")
-    user = relationship("Users", foreign_keys=[finished_by], backref="tasksUsers")
+# Relationships
+class TasksWithUsers(TaskRead):
+    started_by : Optional[UsersRead] = None
+
+class UsersWithTasks(UsersRead):
+    started_tasks: List[TaskRead] = []
+
 
 
 

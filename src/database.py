@@ -1,17 +1,44 @@
 import os
-from sqlalchemy import create_engine
-from sqlalchemy.orm import sessionmaker
-from sqlalchemy.ext.declarative import declarative_base
-
-DB_NAME = "test"
+from sqlmodel import Field, Session, SQLModel, create_engine, select
+from models import Tasks, Users
 
 basedir = os.path.abspath(os.path.dirname(__file__)) + "/data"
-SQLALCHEMY_DATABASE_URL = 'sqlite:///' + os.path.join(basedir, DB_NAME + '.db')
+DB_NAME = "test"
+DATABASE_URL = 'sqlite:///' + os.path.join(basedir, DB_NAME + '.db')
 
 # SQLALCHEMY_DATABASE_URL = "mysql+pymysql://root:chon2185@localhost:32768/test"
 
-engine = create_engine(SQLALCHEMY_DATABASE_URL)
+engine = create_engine(DATABASE_URL, echo=True, connect_args={"check_same_thread": False})
 
-SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
+def get_session():
+    with Session(engine) as session:
+        yield session
 
-Base = declarative_base()
+def create_db_and_tables():
+    SQLModel.metadata.create_all(engine)
+
+    # Cargo datos iniciales de prueba
+    with Session(engine) as session:
+        users = session.exec(select(Users)).all()
+        tasks = session.exec(select(Tasks)).all()
+        if len(users) == 0 and len(tasks) == 0:
+            user1 = Users(username="Pepe Argento", password="123456")
+            user2 = Users(username="chon", password="chon2185")
+            user3 = Users(username="Juan Perez", password="lalalala")
+
+            task1 = Tasks(title="Tarea 1", description="Tarea de prueba 1")
+            task2 = Tasks(title="Tarea 2", description="Tarea de prueba 2")
+            task3 = Tasks(title="Tarea 3", description="Tarea de prueba 3")
+            task4 = Tasks(title="Tarea 4", description="Tarea de prueba 4")
+
+            task1.started_by = user1 # Asigno un usuario a task1
+            # task2.owners = [user2, user3]
+            # task3.owners = [user1, user2]
+            # task4.owners = [user1, user2, user3]
+
+            session.add_all([user1, user2, user3, task1, task2, task3, task4])
+            session.commit()
+            
+
+
+
