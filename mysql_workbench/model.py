@@ -12,7 +12,7 @@ from sqlalchemy import Column, ForeignKey
 from sqlalchemy.ext.declarative import declarative_base
 
 if os.environ.get('DB_TYPE', 'MySQL') == 'MySQL':
-    from sqlalchemy.dialects.mysql import VARCHAR, INTEGER
+    from sqlalchemy.dialects.mysql import INTEGER, VARCHAR
 else:
     from sqlalchemy import Integer, String as VARCHAR
 
@@ -22,88 +22,6 @@ else:
 
 
 DECLARATIVE_BASE = declarative_base()
-
-
-class Task(DECLARATIVE_BASE):
-
-    __tablename__ = 'tasks'
-    __table_args__ = (
-        {'mysql_engine': 'ndbcluster', 'mysql_charset': 'utf8'}
-    )
-
-    id = Column(INTEGER, nullable=False, autoincrement=False, primary_key=True)  # pylint: disable=invalid-name
-    title = Column(VARCHAR(45))
-    description = Column(VARCHAR(45))
-
-    def __repr__(self):
-        return self.__str__()
-
-    def __str__(self):
-        return "<Task(%(id)s)>" % self.__dict__
-
-
-class Note(DECLARATIVE_BASE):
-
-    __tablename__ = 'notes'
-    __table_args__ = (
-        {'mysql_engine': 'ndbcluster', 'mysql_charset': 'utf8'}
-    )
-
-    note = Column(VARCHAR(500))
-    id = Column(  # pylint: disable=invalid-name
-        "tasks_id", INTEGER, ForeignKey("tasks.id", name="fk_notes_tasks1"), nullable=False, autoincrement=False,
-        primary_key=True
-    )
-
-    task = relationship("Task", foreign_keys=[id], backref="notes")
-
-    def __repr__(self):
-        return self.__str__()
-
-    def __str__(self):
-        return "<Note(%(id)s)>" % self.__dict__
-
-
-class User(DECLARATIVE_BASE):
-
-    __tablename__ = 'users'
-    __table_args__ = (
-        {'mysql_engine': 'ndbcluster', 'mysql_charset': 'utf8'}
-    )
-
-    id = Column(INTEGER, nullable=False, autoincrement=False, primary_key=True)  # pylint: disable=invalid-name
-    username = Column(VARCHAR(45))
-    password = Column(VARCHAR(45))
-    platforms_id = Column(
-        INTEGER, ForeignKey("platforms.id", name="user_platform"), nullable=False, autoincrement=False,
-        primary_key=True, index=True
-    )
-
-    platform = relationship("Platform", foreign_keys=[platforms_id], backref="users")
-
-    def __repr__(self):
-        return self.__str__()
-
-    def __str__(self):
-        return "<User(%(id)s, %(platforms_id)s)>" % self.__dict__
-
-
-class Platform(DECLARATIVE_BASE):
-
-    __tablename__ = 'platforms'
-    __table_args__ = (
-        {'mysql_engine': 'ndbcluster', 'mysql_charset': 'utf8'}
-    )
-
-    id = Column(INTEGER, nullable=False, autoincrement=False, primary_key=True)  # pylint: disable=invalid-name
-    name = Column(VARCHAR(45))
-    notifications = Column(VARCHAR(45))
-
-    def __repr__(self):
-        return self.__str__()
-
-    def __str__(self):
-        return "<Platform(%(id)s)>" % self.__dict__
 
 
 class Notification(DECLARATIVE_BASE):
@@ -128,54 +46,43 @@ class Notification(DECLARATIVE_BASE):
         return "<Notification(%(id)s)>" % self.__dict__
 
 
-class PlatformsHasNotification(DECLARATIVE_BASE):
+class Task(DECLARATIVE_BASE):
 
-    __tablename__ = 'platforms_has_notifications'
+    __tablename__ = 'tasks'
     __table_args__ = (
-        {'mysql_engine': 'ndbcluster', 'mysql_charset': 'utf8'}
+        {'mysql_engine': 'InnoDB', 'mysql_charset': 'utf8'}
     )
 
-    platforms_id = Column(
-        INTEGER, ForeignKey("platforms.id", name="fk_platforms_has_notifications_platforms1"), nullable=False,
-        autoincrement=False, primary_key=True, index=True
-    )
-    notifications_id = Column(
-        INTEGER, ForeignKey("notifications.id", name="fk_platforms_has_notifications_notifications1"), nullable=False,
-        autoincrement=False, primary_key=True, index=True
+    id = Column(INTEGER, nullable=False, autoincrement=False, primary_key=True)  # pylint: disable=invalid-name
+    title = Column(VARCHAR(45))
+    description = Column(VARCHAR(45))
+    started_by_id = Column(
+        INTEGER, ForeignKey("users.id", name="fk_started_by"), nullable=False, autoincrement=False, primary_key=True,
+        index=True
     )
 
-    platform = relationship("Platform", foreign_keys=[platforms_id], backref="platformsHasNotifications")
-    notification = relationship("Notification", foreign_keys=[notifications_id], backref="platformsHasNotifications")
+    user = relationship("User", foreign_keys=[started_by_id], backref="tasks")
 
     def __repr__(self):
         return self.__str__()
 
     def __str__(self):
-        return "<PlatformsHasNotification(%(platforms_id)s, %(notifications_id)s)>" % self.__dict__
+        return "<Task(%(id)s, %(started_by_id)s)>" % self.__dict__
 
 
-class TasksUser(DECLARATIVE_BASE):
+class User(DECLARATIVE_BASE):
 
-    __tablename__ = 'tasks_users'
+    __tablename__ = 'users'
     __table_args__ = (
-        {'mysql_engine': 'ndbcluster', 'mysql_charset': 'utf8'}
+        {'mysql_engine': 'InnoDB', 'mysql_charset': 'utf8'}
     )
 
-    id = Column(  # pylint: disable=invalid-name
-        "task_id", INTEGER, ForeignKey("tasks.id", name="task_id"), nullable=False, autoincrement=False,
-        primary_key=True
-    )
-    created_by = Column(INTEGER, ForeignKey("users.id", name="created_by"), nullable=False, index=True)
-    started_by = Column(INTEGER, ForeignKey("users.id", name="started_by"), nullable=False, index=True)
-    finished_by = Column(INTEGER, ForeignKey("users.id", name="finished_by"), nullable=False, index=True)
-
-    task = relationship("Task", foreign_keys=[id], backref="tasksUsers")
-    user = relationship("User", foreign_keys=[created_by], backref="tasksUsers")
-    user = relationship("User", foreign_keys=[started_by], backref="tasksUsers")
-    user = relationship("User", foreign_keys=[finished_by], backref="tasksUsers")
+    id = Column(INTEGER, nullable=False, autoincrement=False, primary_key=True)  # pylint: disable=invalid-name
+    username = Column(VARCHAR(45))
+    password = Column(VARCHAR(45))
 
     def __repr__(self):
         return self.__str__()
 
     def __str__(self):
-        return "<TasksUser(%(id)s)>" % self.__dict__
+        return "<User(%(id)s)>" % self.__dict__
