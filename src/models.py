@@ -1,5 +1,5 @@
 from typing import Optional, List
-from sqlmodel import Field, SQLModel, Relationship
+from sqlmodel import Field, SQLModel, Relationship, UniqueConstraint
 
 # Users
 class UsersBase(SQLModel):
@@ -7,6 +7,11 @@ class UsersBase(SQLModel):
     password : str
 
 class Users(UsersBase, table=True):
+    # Se pueden definir parámetros adicionales de la tabla igualmente acá
+    __table_args__ = (
+        UniqueConstraint("username", username="admin"),             # Defino campos unicos
+        # {'mysql_engine': 'ndbcluster', 'mysql_charset': 'utf8'}
+    )
     id : Optional[int] = Field(default=None, primary_key=True)
     started_tasks: List['Tasks'] = Relationship(back_populates="started_by")
 
@@ -23,12 +28,12 @@ class UsersUpdate(SQLModel):
     password : Optional[str] = None
 
 # Tasks
-
 # Clase Base referida a SQLModel, acá van los campos principales, pero no define la tabla de la BD
 class TasksBase(SQLModel):
     title : str
     description : str
     started_by_id: Optional[int] = Field(default=None, foreign_key="users.id")
+    
 
 # table=True indica que se CREARA este modelo de tabla en la BD
 # el id debe estar en la tabla y se crea de forma automática
@@ -36,6 +41,7 @@ class TasksBase(SQLModel):
 class Tasks(TasksBase, table=True):
     id: Optional[int] = Field(default=None, primary_key=True)
     started_by: Optional[Users] = Relationship(back_populates="started_tasks")
+    owners: List['Users'] = Relationship(back_populates="started_by")
 
 # Para lectura, incluyo el id
 class TasksRead(TasksBase):
@@ -48,7 +54,7 @@ class TaskRead(SQLModel):
 
 # Para escritura, utilizo la clase base, la dejo como referencia
 class TasksCreate(TasksBase):
-    pass
+    owners : List[int]
 
 class TasksUpdate(SQLModel):
     title : Optional[str] = None
@@ -58,6 +64,7 @@ class TasksUpdate(SQLModel):
 # Relationships
 class TasksWithUsers(TaskRead):
     started_by : Optional[UsersRead] = None
+    owners : List[UsersRead] = []
 
 class UsersWithTasks(UsersRead):
     started_tasks: List[TaskRead] = []
