@@ -25,7 +25,7 @@ async def get_users(db: Session = Depends(get_session)):
     users = db.exec(select(models.Users)).all()
     return users
 
-@app.get("/users/{id}", response_model=models.UsersWithTasks)
+@app.get("/users/{id}", response_model=models.Users)
 async def get_user(id: int, db: Session = Depends(get_session)):
     user = db.get(models.Users, id)
     if not user:
@@ -98,9 +98,12 @@ async def delete_task(id: int, db: Session = Depends(get_session)):
     return { "task deleted" : db_task.title }
 
 # Notes
-# @app.get("/notes/", status_code=200)
-# async def get_notes(db: Session = Depends(get_session)):
-#     users = db.query(Notes).all()
-#     return users
+@app.post("/notes/", response_model=models.NotesWithUser)
+async def add_note(new_note: models.NotesCreate, db: Session = Depends(get_session)):
+    db_note = models.Notes.from_orm(new_note)
+    db.add(db_note)
+    db.commit()
+    db.refresh(db_note)
+    return db_note
 
 

@@ -41,6 +41,9 @@ class UsersUpdate(SQLModel):
     username : Optional[str] = None
     password : Optional[str] = None
 
+class UserName(SQLModel):
+    username: str
+
 # Tasks
 # Clase Base referida a SQLModel, acá van los campos principales, pero no define la tabla de la BD
 class TasksBase(SQLModel):
@@ -69,7 +72,7 @@ class TaskRead(SQLModel):
 
 # Para escritura, utilizo la clase base, la dejo como referencia
 class TasksCreate(TasksBase):
-    pass
+    owners: List[Users]
 
 class TasksUpdate(SQLModel):
     title : Optional[str] = None
@@ -94,16 +97,20 @@ class NotesCreate(NotesBase):
 class NotesRead(SQLModel):
     date: str
     note: str
-    owner_id: int
 
 # Vistas ampliadas incluyendo las relciones
+class NotesWithUser(NotesRead):
+    owner : UserName
+
 class TasksWithUsers(TaskRead):
     started_by : Optional[UsersRead] = None
     owners : List[UsersRead] = []
-    notes : List[NotesRead] = []
+    notes : List[NotesWithUser] = []
 
 class UsersWithTasks(UsersRead):
     started_tasks: List[TaskRead] = []
+
+
 
 
 
