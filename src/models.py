@@ -1,17 +1,12 @@
 from typing import Optional, List
 from sqlmodel import Field, SQLModel, Relationship, UniqueConstraint
-
+from datetime import datetime
 
 # Link Tables
 
 class TasksOwners(SQLModel, table=True):
     task_id: Optional[int] = Field(default=None, foreign_key="tasks.id", primary_key=True)
     user_id: Optional[int] = Field(default=None, foreign_key="users.id", primary_key=True)
-
-# class TaskNotes(SQLModel, table=True):
-#     task_id: Optional[int] = Field(default=None, foreign_key="tasks.id", primary_key=True)
-#     note_id: Optional[int] = Field(default=None, foreign_key="notes.id", primary_key=True)
-#     user_id: Optional[int] = Field(default=None, foreign_key="users.id", primary_key=True)
 
 # Users
 class UsersBase(SQLModel):
@@ -27,7 +22,7 @@ class Users(UsersBase, table=True):
     id : Optional[int] = Field(default=None, primary_key=True)
     started_tasks: List['Tasks'] = Relationship(back_populates="started_by")
     owned_tasks: List["Tasks"] = Relationship(back_populates="owners", link_model=TasksOwners)
-    notes: List["Notes"] = Relationship(back_populates="owner")
+    notes: List["Notes"] = Relationship(back_populates="user")
 
 class UsersRead(SQLModel):
     id: int
@@ -72,7 +67,7 @@ class TaskRead(SQLModel):
 
 # Para escritura, utilizo la clase base, la dejo como referencia
 class TasksCreate(TasksBase):
-    owners: List[Users]
+    pass
 
 class TasksUpdate(SQLModel):
     title : Optional[str] = None
@@ -80,16 +75,17 @@ class TasksUpdate(SQLModel):
     started_by_id: Optional[int] = None
     owners: Optional[List[int]] = None
 
+# Notas
 class NotesBase(SQLModel):
-    date: str
     note: str
     task_id: int = Field(default=None, foreign_key="tasks.id")
-    owner_id: int = Field(default=None, foreign_key="users.id")
+    user_id: int = Field(default=None, foreign_key="users.id")
 
 class Notes(NotesBase, table=True):
     id: Optional[int] = Field(default=None, primary_key=True)
-    owner: Users = Relationship(back_populates="notes")
+    date: Optional[str]
     task: Tasks = Relationship(back_populates="notes")
+    user: Users = Relationship(back_populates="notes")
 
 class NotesCreate(NotesBase):
     pass
@@ -100,7 +96,7 @@ class NotesRead(SQLModel):
 
 # Vistas ampliadas incluyendo las relciones
 class NotesWithUser(NotesRead):
-    owner : UserName
+    user : UserName
 
 class TasksWithUsers(TaskRead):
     started_by : Optional[UsersRead] = None

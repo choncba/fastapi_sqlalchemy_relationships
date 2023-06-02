@@ -3,10 +3,9 @@ from starlette import status
 from starlette.responses import RedirectResponse
 from database import create_db_and_tables, get_session, Session, select
 import models
-
 from typing import List
-
-# database.Base.metadata.create_all(bind=engine)
+from datetime import datetime
+from pydantic import ValidationError
 
 app = FastAPI()
 
@@ -72,12 +71,23 @@ async def get_task(id: int, db: Session = Depends(get_session)):
     return task
 
 @app.post("/task/", response_model=models.TasksRead)
-async def add_task(new_task: models.TasksCreate, db: Session = Depends(get_session)):
-    db_task = models.Tasks.from_orm(new_task)
-    db.add(db_task)
-    db.commit()
-    db.refresh(db_task)
-    return db_task
+async def add_task(new_task: models.TasksCreate, owner_ids: List[int], db: Session = Depends(get_session)):
+    
+    # Verifico que los usuarios existan
+    owners = [db.get(models.Users, id) for id in owner_ids if db.get(models.Users, id) is not None]
+    if len(owners) == 0:
+        raise HTTPException(status_code=404, detail=f"User/s id {owner_ids} not found")
+    else:
+        # Primero cargo la info de la tarea, esto genera el id de la tarea automaticamente
+        db_task = models.Tasks.from_orm(new_task)
+        db.add(db_task)
+        db.commit()
+        # Ahora Guardo las referencias a los id's de los usuarios owners en la tabla TaskOwners
+        db_task_owners = [models.TasksOwners(task_id=db_task.id, user_id=id) for id in owner_ids]
+        db.add_all(db_task_owners)
+        db.commit()
+        db.refresh(db_task)
+        return db_task
 
 @app.patch("/task/{id}", response_model=models.TasksRead)
 async def edit_task(id: int, task: models.TasksUpdate, db: Session = Depends(get_session)):
@@ -100,10 +110,17 @@ async def delete_task(id: int, db: Session = Depends(get_session)):
 # Notes
 @app.post("/notes/", response_model=models.NotesWithUser)
 async def add_note(new_note: models.NotesCreate, db: Session = Depends(get_session)):
-    db_note = models.Notes.from_orm(new_note)
-    db.add(db_note)
-    db.commit()
-    db.refresh(db_note)
-    return db_note
-
+        user = db.get(models.Users, new_note.user_id)
+        task = db.get(models.Tasks, new_note.task_id)
+        if user is None:
+            raise HTTPException(status_code=404, detail=f"User id {new_note.user_id} not found")
+        elif task is None:
+            raise HTTPException(status_code=404, detail=f"Task id {new_note.task_id} not found")
+        else:            
+            db_note = models.Notes.from_orm(new_note)
+            db_note.date = datetime.now().strftime("%d/%m/%Y %H:%M")    # Pongo la fecha automáticamente
+            db.add(db_note)
+            db.commit()
+            db.refresh(db_note)
+            return db_note
 
