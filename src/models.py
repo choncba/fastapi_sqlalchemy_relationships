@@ -32,7 +32,7 @@ class UsersCreate(UsersBase):
     pass
 
 class UsersUpdate(SQLModel):
-    id: int
+    # id: int
     username : Optional[str] = None
     password : Optional[str] = None
 
@@ -66,14 +66,14 @@ class TaskRead(SQLModel):
     description : str
 
 # Para escritura, utilizo la clase base, la dejo como referencia
-class TasksCreate(TasksBase):
-    pass
+class TasksCreate(SQLModel):
+    title : str
+    description : str
 
 class TasksUpdate(SQLModel):
     title : Optional[str] = None
     description : Optional[str] = None
     started_by_id: Optional[int] = None
-    owners: Optional[List[int]] = None
 
 # Notas
 class NotesBase(SQLModel):
