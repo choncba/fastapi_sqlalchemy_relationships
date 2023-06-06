@@ -70,8 +70,17 @@ async def delete_user(id: int, db: Session = Depends(get_session)):
 @app.get("/tasks", response_model=List[models.TasksRead], tags=["Tasks"])
 async def get_tasks(db: Session = Depends(get_session)):
     tasks = db.exec(select(models.Tasks)).all()
+    return tasks    
+"""
+
+# Tasks
+#@app.get("/tasks", response_model=List[models.TaskRead], response_model_include={"id"}, tags=["Tasks"])
+@app.get("/tasks", response_model=List[models.TaskRead], tags=["Tasks"])
+async def get_tasks(db: Session = Depends(get_session)):
+    tasks = db.exec(select(models.Tasks)).all()
     return tasks
 
+"""
 @app.get("/task/{id}", response_model=models.TasksWithUsers, tags=["Tasks"])
 async def get_task(id: int, db: Session = Depends(get_session)):
     task = db.get(models.Tasks, id)
