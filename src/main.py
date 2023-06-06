@@ -10,15 +10,17 @@ from pydantic import ValidationError
 app = FastAPI()
 
 # Uso Alembic
-# @app.on_event("startup")
-# def on_startup():
-#     create_db_and_tables()
+@app.on_event("startup")
+def on_startup():
+    create_db_and_tables()
+
 
 # Redirecciono todo a los docs de Swagger
 @app.get("/", include_in_schema=False)
 async def root():
     return RedirectResponse(url="/docs", status_code=status.HTTP_302_FOUND)
 
+"""
 # Users
 @app.get("/users", response_model=List[models.UsersRead], tags=["Users"]) # Notar como el modelo devuelto es distinto al leido en la BD
 async def get_users(db: Session = Depends(get_session)):
@@ -144,4 +146,5 @@ async def add_note(new_note: models.NotesCreate, db: Session = Depends(get_sessi
             db.commit()
             db.refresh(db_note)
             return db_note
+"""
 
