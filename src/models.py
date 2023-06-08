@@ -77,9 +77,10 @@ class Tasks(TasksBase, table=True):
     #users_actions: Users = Relationship(sa_relationship_kwargs={"primaryjoin": "or_(Tasks.started_by_id==Users.id, Tasks.canceled_by_id==Users.id, Tasks.finished_by_id==Users.id)", "lazy": "joined"})
 
     # Relacion Many-To-Many con los usuarios owners de la tarea
-    owners: List["Users"] = Relationship(link_model=TasksOwners, back_populates="owned_tasks")
+    owners: List["Users"] = Relationship(link_model=TasksOwners, back_populates="owned_tasks") # Al eliminar una tarea también se elimina la relación de la tabla TaskOwners
     # Relación One(Tasks)-To-Many(Notes), multiples notas para cada tarea
-    notes: List["Notes"] = Relationship(back_populates="task")
+    # notes: List["Notes"] = Relationship(back_populates="task") # Esto al eliminar una tarea pone el id de la tarea en la tabla Notes en null
+    notes: List["Notes"] = Relationship(sa_relationship_kwargs={"cascade": "all,delete,delete-orphan"}, back_populates="task") # Esto al eliminar la tarea también elimina las notas asociadas
 
     # class Config:
     #     orm_mode = True
@@ -95,7 +96,7 @@ class TaskRead(SQLModel):
     started_by_id: Optional[int]
     canceled_by_id: Optional[int]
     finished_by_id: Optional[int]
-    owners: List[UsersIds]
+    owners: List[UsersRead]
 
 # Para escritura, utilizo la clase base, la dejo como referencia
 class TasksCreate(TasksBase):
@@ -111,15 +112,14 @@ class TasksUpdate(SQLModel):
 # Notas
 class NotesBase(SQLModel):
     note: str = Field(max_length=2000, default=None)
+    user_id: Optional[int] = Field(default=None, foreign_key="users.id")
+    task_id: Optional[int] = Field(default=None, foreign_key="tasks.id")
 
 class Notes(NotesBase, table=True):
     id: Optional[int] = Field(default=None, primary_key=True)
     date: Optional[datetime] = Field(default=None)
-    
-    user_id: Optional[int] = Field(default=None, foreign_key="users.id")
+
     user: Users = Relationship()
-    
-    task_id: Optional[int] = Field(default=None, foreign_key="tasks.id")
     task: Tasks = Relationship()
 
     # class Config:
@@ -129,18 +129,14 @@ class NotesCreate(NotesBase):
     pass
 
 class NotesRead(SQLModel):
-    date: str
+    date: datetime
     note: str
 
 # Vistas ampliadas incluyendo las relciones
 class NotesWithUser(NotesRead):
-    user : UserName
+    user : UsersRead
 
-class TasksWithUsers(TaskRead):
-    started_by : Optional[UsersRead] = None
-    finished_by : Optional[UsersRead] = None
-    canceled_by : Optional[UsersRead] = None
-    owners : List[UsersRead] = []
+class TasksWithNotes(TaskRead):
     notes : List[NotesWithUser] = []
 
 class UsersWithTasks(UsersRead):

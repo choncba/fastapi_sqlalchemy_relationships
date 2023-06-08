@@ -9,7 +9,7 @@ DATABASE_URL = 'sqlite:///' + os.path.join(basedir, DB_NAME + '.db')
 
 # SQLALCHEMY_DATABASE_URL = "mysql+pymysql://root:chon2185@localhost:32768/test"
 
-engine = create_engine(DATABASE_URL, echo=False, connect_args={"check_same_thread": False})
+engine = create_engine(DATABASE_URL, echo=True, connect_args={"check_same_thread": False})
 
 def get_session():
     with Session(engine) as session:
