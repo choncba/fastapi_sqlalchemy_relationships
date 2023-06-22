@@ -48,8 +48,8 @@ class UserName(SQLModel):
 class UsersIds(SQLModel):
     id: int
 
-    def get_ids(self):
-        return self.id
+    class Config:
+        orm_mode = True
 
 # Tasks
 # Clase Base referida a SQLModel, acá van los campos principales, pero no define la tabla de la BD
