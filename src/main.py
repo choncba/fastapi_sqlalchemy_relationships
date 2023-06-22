@@ -9,7 +9,7 @@ from pydantic import ValidationError
 
 app = FastAPI()
 
-# Uso Alembic
+# Si uso Alembic comento este método
 @app.on_event("startup")
 def on_startup():
     create_db_and_tables()
@@ -20,7 +20,6 @@ def on_startup():
 async def root():
     return RedirectResponse(url="/docs", status_code=status.HTTP_302_FOUND)
 
-"""
 # Users
 @app.get("/users", response_model=List[models.UsersRead], tags=["Users"]) # Notar como el modelo devuelto es distinto al leido en la BD
 async def get_users(db: Session = Depends(get_session)):
@@ -67,21 +66,13 @@ async def delete_user(id: int, db: Session = Depends(get_session)):
     return { "user deleted" : db_user.username }
 
 # Tasks
-@app.get("/tasks", response_model=List[models.TasksRead], tags=["Tasks"])
-async def get_tasks(db: Session = Depends(get_session)):
-    tasks = db.exec(select(models.Tasks)).all()
-    return tasks    
-"""
-
-# Tasks
 #@app.get("/tasks", response_model=List[models.TaskRead], response_model_include={"id"}, tags=["Tasks"])
 @app.get("/tasks", response_model=List[models.TaskRead], tags=["Tasks"])
 async def get_tasks(db: Session = Depends(get_session)):
     tasks = db.exec(select(models.Tasks)).all()
     return tasks
 
-"""
-@app.get("/task/{id}", response_model=models.TasksWithUsers, tags=["Tasks"])
+@app.get("/task/{id}", response_model=models.TasksWithNotes, tags=["Tasks"])
 async def get_task(id: int, db: Session = Depends(get_session)):
     task = db.get(models.Tasks, id)
     if not task:
@@ -108,7 +99,7 @@ async def add_task(new_task: models.TasksCreate, owner_ids: List[int], db: Sessi
         return db_task
 
 @app.patch("/task/{id}", response_model=models.TasksRead, tags=["Tasks"])
-async def edit_task(id: int, task: models.TasksUpdate, owner_ids: Optional[List[int]], db: Session = Depends(get_session)):
+async def edit_task(id: int, task: models.TasksUpdate, owner_ids: Optional[List[int]] | None = None, db: Session = Depends(get_session)):
     db_task = await get_task(id, db)
     task_data = task.dict(exclude_unset=True)
     for key, value in task_data.items():
@@ -133,10 +124,10 @@ async def delete_task(id: int, db: Session = Depends(get_session)):
     db.delete(db_task)
     db.commit()
     # Elimino las notas asociadas, el id de la tarea queda en none al borarla
-    notes = db.exec(select(models.Notes).where(models.Notes.task_id == None)).all()
-    for note in notes:
-        db.delete(note)
-    db.commit()
+    # notes = db.exec(select(models.Notes).where(models.Notes.task_id == None)).all()
+    # for note in notes:
+    #     db.delete(note)
+    # db.commit()
     return { f"Task {id} deleted" : db_task.title }
 
 # Notes
@@ -150,10 +141,10 @@ async def add_note(new_note: models.NotesCreate, db: Session = Depends(get_sessi
             raise HTTPException(status_code=404, detail=f"Task id {new_note.task_id} not found")
         else:            
             db_note = models.Notes.from_orm(new_note)
-            db_note.date = datetime.now().strftime("%d/%m/%Y %H:%M")    # Pongo la fecha automáticamente
+            #db_note.date = datetime.now().strftime("%d/%m/%Y %H:%M")    # Pongo la fecha automáticamente
+            db_note.date = datetime.now()    # Pongo la fecha automáticamente
             db.add(db_note)
             db.commit()
             db.refresh(db_note)
             return db_note
-"""
 
